@@ -1,50 +1,14 @@
 // Prelude {{{1
+#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <map>
-#include <optional>
 #include <queue>
 #include <set>
+#include <stack>
 #include <string>
 #include <vector>
 using namespace std;
-
-// DirectedGraph class {{{1
-template <class T>
-class DirectedGraph {
-   private:
-    map<T, set<T>> nodes{};
-    size_t nodes_count = 0;
-
-   public:
-    // Добавление в граф элемента, не связанного с другими элементами
-    void add_node(const T node) {
-        if (!nodes.contains(node)) {
-            nodes.insert({node, set<T>()});
-            ++nodes_count;
-        }
-    }
-
-    // Добавление в граф двунаправленного ребра
-    void add_double_edge(const T a, const T b) {
-        add_node(a);
-        add_node(b);
-        nodes[a].insert(b);
-        nodes[b].insert(a);
-    }
-
-    // Добавление в граф однонаправленного ребра
-    void add_edge(const T from, const T to) {
-        add_node(from);
-        add_node(to);
-        nodes[from].insert(to);
-    }
-
-    // Getters
-    const set<T>& get_children(const T node) { return nodes.at(node); }
-    const map<T, set<T>>& as_map() { return nodes; }
-    const size_t size() { return nodes_count; }
-};
 
 // Maze class {{{1
 template <size_t H, size_t W>
@@ -55,6 +19,18 @@ class Maze {
     bool _field[H][W]{};
     cell_t _start_pos;
     cell_t _dest_pos;
+
+    // Восстановление пути из графа родителей
+    vector<cell_t> build_path(map<cell_t, cell_t> parents) {
+        vector<cell_t> res({_dest_pos});
+        cell_t cur_node = _dest_pos;
+        while (cur_node != _start_pos) {
+            cur_node = parents[cur_node];
+            res.push_back(cur_node);
+        }
+        reverse(res.begin(), res.end());
+        return res;
+    }
 
    public:
     static const char space_char = ' ';
@@ -136,23 +112,48 @@ class Maze {
         return res;
     }
 
-    DirectedGraph<cell_t> as_graph() {
-        DirectedGraph<cell_t> graph;
-        set<cell_t> visited;
-        queue<cell_t> cells_queue;
-        cells_queue.push(_start_pos);
-        while (!cells_queue.empty()) {
-            cell_t next = cells_queue.front();
-            cells_queue.pop();
-            for (cell_t neighbor : neighbors(next)) {
-                graph.add_edge(next, neighbor);
-                if (!visited.count(neighbor)) {
-                    visited.insert(neighbor);
-                    cells_queue.push(neighbor);
+    // Поиск пути в ширину
+    vector<cell_t> bfs_path() {
+        set<cell_t> visited({_start_pos});
+        queue<cell_t> search_queue({_start_pos});
+        map<cell_t, cell_t> parents;
+        while (!search_queue.empty()) {
+            cell_t next = search_queue.front();
+            if (next == _dest_pos) {
+                return build_path(parents);
+            }
+            search_queue.pop();
+            for (cell_t child : neighbors(next)) {
+                if (!visited.contains(child)) {
+                    parents.insert({child, next});
+                    visited.insert(child);
+                    search_queue.push(child);
                 }
             }
         }
-        return graph;
+        return {};
+    }
+
+    // Поиск пути в глубину
+    vector<cell_t> dfs_path() {
+        auto visited = set<cell_t>({_start_pos});
+        auto search_stack = stack<cell_t>({_start_pos});
+        map<cell_t, cell_t> parents;
+        while (!search_stack.empty()) {
+            cell_t next = search_stack.top();
+            if (next == _dest_pos) {
+                return build_path(parents);
+            }
+            search_stack.pop();
+            for (cell_t child : neighbors(next)) {
+                if (!visited.contains(child)) {
+                    parents.insert({child, next});
+                    visited.insert(child);
+                    search_stack.push(child);
+                }
+            }
+        }
+        return {};
     }
 };
 
@@ -160,6 +161,15 @@ class Maze {
 template <class T1, class T2>
 ostream& operator<<(ostream& os, const pair<T1, T2>& p) {
     os << "(" << p.first << ", " << p.second << ")";
+    return os;
+}
+
+template <class T>
+ostream& operator<<(ostream& os, vector<T> v) {
+    os << " ";
+    for (auto elem : v) {
+        os << elem << " ";
+    }
     return os;
 }
 
@@ -204,23 +214,19 @@ ostream& operator<<(ostream& os, const Maze<H, W>& maze) {
 
 // main {{{1
 int main() {
-    const size_t height = 4;
-    const size_t width = 5;
-    char input_field[height][width + 1] = {
-        "*   #",
-        " ## #",
-        "   ##",
-        " #  .",
-    };
+    const size_t height = 5;
+    const size_t width = 6;
+    char input_field[height][width + 1] = {"*     ", " #### ", "    # ",
+                                           " ## #.", "  #   "};
 
     Maze<height, width> maze{input_field};
-    cout  << "Поле: \n" << maze << "\nНачальная позиция: " <<  maze.start_pos() << "\nФинишная позиция: " << maze.dest_pos() << endl;
+    cout << "Поле: \n" << maze << endl;
 
-    auto graph = maze.as_graph();
-    cout << "Граф:" << endl;
-    for (auto& i : graph.as_map()) {
-        cout << "  " << i.first << " -> " << i.second << endl;
-    }
+    cout << "Путь при поиске в ширину:" << endl
+         << "  " << maze.bfs_path() << endl;
+
+    cout << "Путь при поиске в глубину:" << endl
+         << "  " << maze.dfs_path() << endl;
 
     return 0;
 }
