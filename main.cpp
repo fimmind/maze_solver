@@ -38,7 +38,7 @@ class Maze {
     static const char obstacle_char = '#';
     static const char start_pos_char = '@';
     static const char dest_pos_char = '*';
-    static const char path_char = '.';
+
 
     Maze(const char (&input_field)[H][W + 1]) {
         bool found_start_pos = false;
@@ -162,11 +162,11 @@ class Maze {
         set<cell_t> path_cells(maze_path.begin(), maze_path.end());
         cout << "  ";
         for (size_t i = 0; i < width() + 2; ++i) {
-            cout << "▄";
+            cout << "─";
         }
         cout << endl;
         for (size_t i = 0; i < height(); ++i) {
-            cout << "  █";
+            cout << "  │";
             for (size_t j = 0; j < width(); ++j) {
                 pair<size_t, size_t> pos = {i, j};
                 if (start_pos() == pos)
@@ -176,15 +176,15 @@ class Maze {
                 else if (is_obstacle(pos))
                     cout << obstacle_char;
                 else if (path_cells.contains(pos))
-                    cout << path_char;
+                    cout << "⋅";
                 else
                     cout << space_char;
             }
-            cout << "█" << endl;
+            cout << "│" << endl;
         }
         cout << "  ";
         for (size_t i = 0; i < width() + 2; ++i) {
-            cout << "▀";
+            cout << "─";
         }
     }
 
@@ -232,15 +232,17 @@ int main() {
     Maze<height, width> maze{input_field};
     cout << "Поле: \n";
     maze.print();
-    cout << endl;
+    cout << endl << endl;
 
+    auto maze_path = maze.bfs_path();
     cout << "Путь при поиске в ширину: \n";
-    maze.print_with_path(maze.bfs_path());
-    cout << endl;
+    maze.print_with_path(maze_path);
+    cout << endl << maze_path << endl << endl;
 
+    maze_path = maze.dfs_path();
     cout << "Путь при поиске в глубину: \n";
-    maze.print_with_path(maze.dfs_path());
-    cout << endl;
+    maze.print_with_path(maze_path);
+    cout << endl << maze_path << endl << endl;
 
     return 0;
 }
