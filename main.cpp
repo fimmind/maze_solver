@@ -1,3 +1,4 @@
+// Prelude {{{1
 #include <functional>
 #include <iostream>
 #include <map>
@@ -8,6 +9,7 @@
 #include <vector>
 using namespace std;
 
+// DirectedGraph class {{{1
 template <class T>
 class DirectedGraph {
    private:
@@ -44,6 +46,7 @@ class DirectedGraph {
     const size_t size() { return nodes_count; }
 };
 
+// Maze class {{{1
 template <size_t H, size_t W>
 class Maze {
    private:
@@ -153,6 +156,7 @@ class Maze {
     }
 };
 
+// operator<< {{{1
 template <class T1, class T2>
 ostream& operator<<(ostream& os, const pair<T1, T2>& p) {
     os << "(" << p.first << ", " << p.second << ")";
@@ -198,6 +202,7 @@ ostream& operator<<(ostream& os, const Maze<H, W>& maze) {
     return os;
 }
 
+// main {{{1
 int main() {
     const size_t height = 4;
     const size_t width = 5;
@@ -219,3 +224,5 @@ int main() {
 
     return 0;
 }
+
+// {{{1 vim:  fdm=marker
