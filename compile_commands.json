@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/fimmind/Code/university/path_search/build",
-  "command": "/usr/bin/c++   -g -std=gnu++20 -o CMakeFiles/main.dir/main.cpp.o -c /home/fimmind/Code/university/path_search/main.cpp",
-  "file": "/home/fimmind/Code/university/path_search/main.cpp"
-}
-]
