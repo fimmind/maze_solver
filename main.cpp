@@ -13,9 +13,10 @@ using namespace std;
 // Maze class {{{1
 template <size_t H, size_t W>
 class Maze {
-   private:
+   public:
     typedef pair<size_t, size_t> cell_t;
 
+   private:
     bool _field[H][W]{};
     cell_t _start_pos;
     cell_t _dest_pos;
@@ -35,8 +36,9 @@ class Maze {
    public:
     static const char space_char = ' ';
     static const char obstacle_char = '#';
-    static const char start_pos_char = '*';
-    static const char dest_pos_char = '.';
+    static const char start_pos_char = '@';
+    static const char dest_pos_char = '*';
+    static const char path_char = '.';
 
     Maze(const char (&input_field)[H][W + 1]) {
         bool found_start_pos = false;
@@ -155,6 +157,38 @@ class Maze {
         }
         return {};
     }
+
+    void print_with_path(vector<cell_t> maze_path) {
+        set<cell_t> path_cells(maze_path.begin(), maze_path.end());
+        cout << "  ";
+        for (size_t i = 0; i < width() + 2; ++i) {
+            cout << "▄";
+        }
+        cout << endl;
+        for (size_t i = 0; i < height(); ++i) {
+            cout << "  █";
+            for (size_t j = 0; j < width(); ++j) {
+                pair<size_t, size_t> pos = {i, j};
+                if (start_pos() == pos)
+                    cout << start_pos_char;
+                else if (dest_pos() == pos)
+                    cout << dest_pos_char;
+                else if (is_obstacle(pos))
+                    cout << obstacle_char;
+                else if (path_cells.contains(pos))
+                    cout << path_char;
+                else
+                    cout << space_char;
+            }
+            cout << "█" << endl;
+        }
+        cout << "  ";
+        for (size_t i = 0; i < width() + 2; ++i) {
+            cout << "▀";
+        }
+    }
+
+    void print() { print_with_path({}); }
 };
 
 // operator<< {{{1
@@ -183,50 +217,30 @@ ostream& operator<<(ostream& os, set<T> s) {
     return os;
 }
 
-template <size_t H, size_t W>
-ostream& operator<<(ostream& os, const Maze<H, W>& maze) {
-    cout << "  ";
-    for (size_t i = 0; i < maze.width() + 2; ++i) {
-        cout << "▄";
-    }
-    cout << endl;
-    for (size_t i = 0; i < maze.height(); ++i) {
-        cout << "  █";
-        for (size_t j = 0; j < maze.width(); ++j) {
-            pair<size_t, size_t> pos = {i, j};
-            if (maze.start_pos() == pos)
-                os << maze.start_pos_char;
-            else if (maze.dest_pos() == pos)
-                os << maze.dest_pos_char;
-            else if (maze.is_obstacle(pos))
-                os << maze.obstacle_char;
-            else
-                os << maze.space_char;
-        }
-        cout << "█" << endl;
-    }
-    cout << "  ";
-    for (size_t i = 0; i < maze.width() + 2; ++i) {
-        cout << "▀";
-    }
-    return os;
-}
-
 // main {{{1
 int main() {
     const size_t height = 5;
     const size_t width = 6;
-    char input_field[height][width + 1] = {"*     ", " #### ", "    # ",
-                                           " ## #.", "  #   "};
+    char input_field[height][width + 1] = {
+        "@     ",
+        " #### ",
+        "    # ",
+        " ## #*",
+        "  #   ",
+    };
 
     Maze<height, width> maze{input_field};
-    cout << "Поле: \n" << maze << endl;
+    cout << "Поле: \n";
+    maze.print();
+    cout << endl;
 
-    cout << "Путь при поиске в ширину:" << endl
-         << "  " << maze.bfs_path() << endl;
+    cout << "Путь при поиске в ширину: \n";
+    maze.print_with_path(maze.bfs_path());
+    cout << endl;
 
-    cout << "Путь при поиске в глубину:" << endl
-         << "  " << maze.dfs_path() << endl;
+    cout << "Путь при поиске в глубину: \n";
+    maze.print_with_path(maze.dfs_path());
+    cout << endl;
 
     return 0;
 }
