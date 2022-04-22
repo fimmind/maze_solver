@@ -1,14 +1,15 @@
 default: build
 
-cmake:
-	test -d ./build || mkdir build
-	cd build && cmake ..
-	rm compile_commands.json || true
-	cp ./build/compile_commands.json .
+cmake: CMakeLists.txt
+	cmake -B build .
+	test ! -f compile_commands.json || rm compile_commands.json
+	cp build/compile_commands.json .
 
 build: main.cpp
-	test -f ./build/Makefile || ${MAKE} cmake
-	${MAKE} -C ./build
+	cmake --build build -- --no-print-directory
 
-run: build
-	./build/main
+run: build build/main
+	build/main
+
+nvim/build: build
+nvim/run: run
