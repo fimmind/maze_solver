@@ -33,12 +33,32 @@ class Maze {
         return res;
     }
 
+    // Один шаг поиска в ширину
+    void bfs_step(set<cell_t>* visited_forward,
+                  const set<cell_t> visited_backward,
+                  queue<cell_t>* search_queue, bool* is_done,
+                  function<void(cell_t child, cell_t parent)> set_parent) {
+        cell_t next = search_queue->front();
+        if (visited_backward.contains(next)) {
+            *is_done = true;
+            return;
+        }
+        search_queue->pop();
+
+        for (cell_t child : neighbors(next)) {
+            if (!visited_forward->contains(child)) {
+                set_parent(child, next);
+                visited_forward->insert(child);
+                search_queue->push(child);
+            }
+        }
+    }
+
    public:
     static const char space_char = ' ';
     static const char obstacle_char = '#';
     static const char start_pos_char = '@';
     static const char dest_pos_char = '*';
-
 
     Maze(const char (&input_field)[H][W + 1]) {
         bool found_start_pos = false;
@@ -119,19 +139,14 @@ class Maze {
         set<cell_t> visited({_start_pos});
         queue<cell_t> search_queue({_start_pos});
         map<cell_t, cell_t> parents;
+        bool is_done = false;
+
         while (!search_queue.empty()) {
-            cell_t next = search_queue.front();
-            if (next == _dest_pos) {
-                return build_path(parents);
-            }
-            search_queue.pop();
-            for (cell_t child : neighbors(next)) {
-                if (!visited.contains(child)) {
-                    parents.insert({child, next});
-                    visited.insert(child);
-                    search_queue.push(child);
-                }
-            }
+            bfs_step(&visited, {_dest_pos}, &search_queue, &is_done,
+                     [&](cell_t child, cell_t parent) {
+                         parents.insert({child, parent});
+                     });
+            if (is_done) return build_path(parents);
         }
         return {};
     }
@@ -143,37 +158,23 @@ class Maze {
         auto forward_search_queue = queue<cell_t>({_start_pos});
         auto backward_search_queue = queue<cell_t>({_dest_pos});
         map<cell_t, cell_t> parents;
+        bool is_done = false;
 
         while (!forward_search_queue.empty() ||
                !backward_search_queue.empty()) {
-            if (!forward_search_queue.empty()) {
-                cell_t next = forward_search_queue.front();
-                if (visited_backward.contains(next)) {
-                    return (build_path(parents));
-                }
-                forward_search_queue.pop();
-                for (cell_t child : neighbors(next)) {
-                    if (!visited_forward.contains(child)) {
-                        parents.insert({child, next});
-                        visited_forward.insert(child);
-                        forward_search_queue.push(child);
-                    }
-                }
-            }
-            if (!backward_search_queue.empty()) {
-                cell_t next = backward_search_queue.front();
-                if (visited_forward.contains(next)) {
-                    return build_path(parents);
-                }
-                backward_search_queue.pop();
-                for (cell_t child : neighbors(next)) {
-                    if (!visited_backward.contains(child)) {
-                        parents.insert({next, child});
-                        visited_backward.insert(child);
-                        backward_search_queue.push(child);
-                    }
-                }
-            }
+            if (!forward_search_queue.empty())
+                bfs_step(&visited_forward, visited_backward,
+                         &forward_search_queue, &is_done,
+                         [&](cell_t child, cell_t parent) {
+                             parents.insert({child, parent});
+                         });
+            if (!backward_search_queue.empty())
+                bfs_step(&visited_backward, visited_forward,
+                         &backward_search_queue, &is_done,
+                         [&](cell_t parent, cell_t child) {
+                             parents.insert({child, parent});
+                         });
+            if (is_done) return build_path(parents);
         }
         return {};
     }
