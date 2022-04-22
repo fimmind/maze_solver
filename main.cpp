@@ -158,7 +158,7 @@ class Maze {
         return {};
     }
 
-    void print_with_path(vector<cell_t> maze_path) {
+    void print_with_path(set<cell_t> maze_path) {
         set<cell_t> path_cells(maze_path.begin(), maze_path.end());
         cout << "  ";
         for (size_t i = 0; i < width() + 2; ++i) {
@@ -229,6 +229,7 @@ int main() {
         "  #   ",
     };
 
+    typedef Maze<height, width>::cell_t cell_t;
     Maze<height, width> maze{input_field};
     cout << "Поле: \n";
     maze.print();
@@ -236,12 +237,12 @@ int main() {
 
     auto maze_path = maze.bfs_path();
     cout << "Путь при поиске в ширину: \n";
-    maze.print_with_path(maze_path);
+    maze.print_with_path(set<cell_t> (maze_path.begin(), maze_path.end()));
     cout << endl << maze_path << endl << endl;
 
     maze_path = maze.dfs_path();
     cout << "Путь при поиске в глубину: \n";
-    maze.print_with_path(maze_path);
+    maze.print_with_path(set<cell_t> (maze_path.begin(), maze_path.end()));
     cout << endl << maze_path << endl << endl;
 
     return 0;
