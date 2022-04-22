@@ -136,6 +136,48 @@ class Maze {
         return {};
     }
 
+    // Двусторонний поиск в ширину
+    vector<cell_t> bi_bfs_path() {
+        auto visited_forward = set<cell_t>({_start_pos});
+        auto visited_backward = set<cell_t>({_dest_pos});
+        auto forward_search_queue = queue<cell_t>({_start_pos});
+        auto backward_search_queue = queue<cell_t>({_dest_pos});
+        map<cell_t, cell_t> parents;
+
+        while (!forward_search_queue.empty() ||
+               !backward_search_queue.empty()) {
+            if (!forward_search_queue.empty()) {
+                cell_t next = forward_search_queue.front();
+                if (visited_backward.contains(next)) {
+                    return (build_path(parents));
+                }
+                forward_search_queue.pop();
+                for (cell_t child : neighbors(next)) {
+                    if (!visited_forward.contains(child)) {
+                        parents.insert({child, next});
+                        visited_forward.insert(child);
+                        forward_search_queue.push(child);
+                    }
+                }
+            }
+            if (!backward_search_queue.empty()) {
+                cell_t next = backward_search_queue.front();
+                if (visited_forward.contains(next)) {
+                    return build_path(parents);
+                }
+                backward_search_queue.pop();
+                for (cell_t child : neighbors(next)) {
+                    if (!visited_backward.contains(child)) {
+                        parents.insert({next, child});
+                        visited_backward.insert(child);
+                        backward_search_queue.push(child);
+                    }
+                }
+            }
+        }
+        return {};
+    }
+
     // Поиск пути в глубину
     vector<cell_t> dfs_path() {
         auto visited = set<cell_t>({_start_pos});
@@ -222,11 +264,7 @@ int main() {
     const size_t height = 5;
     const size_t width = 6;
     char input_field[height][width + 1] = {
-        "@     ",
-        " #### ",
-        "    # ",
-        " ## #*",
-        "  #   ",
+        "@     ", " #### ", "    # ", " ## #*", "  #   ",
     };
 
     typedef Maze<height, width>::cell_t cell_t;
@@ -237,12 +275,17 @@ int main() {
 
     auto maze_path = maze.bfs_path();
     cout << "Путь при поиске в ширину: \n";
-    maze.print_with_path(set<cell_t> (maze_path.begin(), maze_path.end()));
+    maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
     cout << endl << maze_path << endl << endl;
 
     maze_path = maze.dfs_path();
     cout << "Путь при поиске в глубину: \n";
-    maze.print_with_path(set<cell_t> (maze_path.begin(), maze_path.end()));
+    maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
+    cout << endl << maze_path << endl << endl;
+
+    maze_path = maze.bi_bfs_path();
+    cout << "Путь при поиске в ширину с двух сторон: \n";
+    maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
     cout << endl << maze_path << endl << endl;
 
     return 0;
