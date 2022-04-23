@@ -10,6 +10,14 @@
 #include <vector>
 using namespace std;
 
+// Supplementary function  {{{1
+template <class T>
+vector<T>& operator+=(vector<T>& v1, const vector<T>& v2) {
+    v1.reserve(v1.size() + v2.size());
+    v1.insert(v1.end(), v2.begin(), v2.end());
+    return v1;
+}
+
 // Maze class {{{1
 template <size_t H, size_t W>
 class Maze {
@@ -22,13 +30,20 @@ class Maze {
     cell_t _dest_pos;
 
     // Восстановление пути из графа родителей
-    vector<cell_t> build_path(map<cell_t, cell_t> parents) {
-        vector<cell_t> res({_dest_pos});
-        cell_t cur_node = _dest_pos;
-        while (cur_node != _start_pos) {
+    vector<cell_t> build_reversed_path(map<cell_t, cell_t> parents,
+                                       cell_t start_pos, cell_t dest_pos) {
+        vector<cell_t> res({dest_pos});
+        cell_t cur_node = dest_pos;
+        while (cur_node != start_pos) {
             cur_node = parents[cur_node];
             res.push_back(cur_node);
         }
+        return res;
+    }
+
+    vector<cell_t> build_path(map<cell_t, cell_t> parents, cell_t start_pos,
+                              cell_t dest_pos) {
+        auto res = build_reversed_path(parents, start_pos, dest_pos);
         reverse(res.begin(), res.end());
         return res;
     }
@@ -36,18 +51,20 @@ class Maze {
     // Один шаг поиска в ширину
     void bfs_step(set<cell_t>* visited_forward,
                   const set<cell_t> visited_backward,
-                  queue<cell_t>* search_queue, bool* is_done,
-                  function<void(cell_t child, cell_t parent)> set_parent) {
+                  queue<cell_t>* search_queue, map<cell_t, cell_t>* parents,
+                  bool* is_done, cell_t* intersection) {
+        if (search_queue->empty() || *is_done) return;
         cell_t next = search_queue->front();
         if (visited_backward.contains(next)) {
             *is_done = true;
+            if (intersection) *intersection = next;
             return;
         }
         search_queue->pop();
 
         for (cell_t child : neighbors(next)) {
             if (!visited_forward->contains(child)) {
-                set_parent(child, next);
+                parents->insert({child, next});
                 visited_forward->insert(child);
                 search_queue->push(child);
             }
@@ -142,11 +159,11 @@ class Maze {
         bool is_done = false;
 
         while (!search_queue.empty()) {
-            bfs_step(&visited, {_dest_pos}, &search_queue, &is_done,
-                     [&](cell_t child, cell_t parent) {
-                         parents.insert({child, parent});
-                     });
-            if (is_done) return build_path(parents);
+            bfs_step(&visited, {_dest_pos}, &search_queue, &parents, &is_done,
+                     nullptr);
+            if (is_done) {
+                return build_path(parents, _start_pos, _dest_pos);
+            }
         }
         return {};
     }
@@ -158,23 +175,24 @@ class Maze {
         auto forward_search_queue = queue<cell_t>({_start_pos});
         auto backward_search_queue = queue<cell_t>({_dest_pos});
         map<cell_t, cell_t> parents;
+        map<cell_t, cell_t> children;
         bool is_done = false;
+        cell_t intersection;
 
         while (!forward_search_queue.empty() ||
                !backward_search_queue.empty()) {
-            if (!forward_search_queue.empty())
-                bfs_step(&visited_forward, visited_backward,
-                         &forward_search_queue, &is_done,
-                         [&](cell_t child, cell_t parent) {
-                             parents.insert({child, parent});
-                         });
-            if (!backward_search_queue.empty())
-                bfs_step(&visited_backward, visited_forward,
-                         &backward_search_queue, &is_done,
-                         [&](cell_t parent, cell_t child) {
-                             parents.insert({child, parent});
-                         });
-            if (is_done) return build_path(parents);
+            bfs_step(&visited_forward, visited_backward, &forward_search_queue,
+                     &parents, &is_done, &intersection);
+            bfs_step(&visited_backward, visited_forward, &backward_search_queue,
+                     &children, &is_done, &intersection);
+            if (is_done) {
+                vector<cell_t> res_path =
+                    build_path(parents, _start_pos, intersection);
+                res_path.pop_back();
+                res_path +=
+                    build_reversed_path(children, _dest_pos, intersection);
+                return res_path;
+            }
         }
         return {};
     }
@@ -187,7 +205,7 @@ class Maze {
         while (!search_stack.empty()) {
             cell_t next = search_stack.top();
             if (next == _dest_pos) {
-                return build_path(parents);
+                return build_path(parents, _start_pos, _dest_pos);
             }
             search_stack.pop();
             for (cell_t child : neighbors(next)) {
@@ -265,7 +283,11 @@ int main() {
     const size_t height = 5;
     const size_t width = 6;
     char input_field[height][width + 1] = {
-        "@     ", " #### ", "    # ", " ## #*", "  #   ",
+        "@     ",  //
+        " #### ",  //
+        "    # ",  //
+        " ## #*",  //
+        "  #   ",  //
     };
 
     typedef Maze<height, width>::cell_t cell_t;
