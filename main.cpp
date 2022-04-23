@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <queue>
+#include <random>
 #include <set>
 #include <stack>
 #include <string>
@@ -125,6 +126,29 @@ class Maze {
             exit(1);
         }
     }
+
+    Maze(bool field[H][W], cell_t start_pos, cell_t dest_pos) {
+        _field = field;
+        _start_pos = start_pos;
+        _dest_pos = dest_pos;
+    }
+
+    Maze() {
+        random_device r;
+        default_random_engine generator(r());
+        uniform_int_distribution<unsigned int> bool_distribution(0, 3);
+        for (auto i = 0; i < H; ++i) {
+            for (auto j = 0; j < W; ++j) {
+                _field[i][j] = !bool_distribution(generator);
+            }
+        }
+
+        _start_pos = {0, 0};
+        _dest_pos = {H - 1, W - 1};
+        _field[_start_pos.first][_start_pos.second] = 0;
+        _field[_dest_pos.first][_dest_pos.second] = 0;
+    }
+
     ~Maze() {}
 
     inline size_t width() const { return W; }
@@ -280,18 +304,11 @@ ostream& operator<<(ostream& os, set<T> s) {
 
 // main {{{1
 int main() {
-    const size_t height = 5;
-    const size_t width = 6;
-    char input_field[height][width + 1] = {
-        "@     ",  //
-        " #### ",  //
-        "    # ",  //
-        " ## #*",  //
-        "  #   ",  //
-    };
+    const size_t height = 20;
+    const size_t width = 40;
 
     typedef Maze<height, width>::cell_t cell_t;
-    Maze<height, width> maze{input_field};
+    Maze<height, width> maze;
     cout << "Поле: \n";
     maze.print();
     cout << endl << endl;
@@ -299,17 +316,17 @@ int main() {
     auto maze_path = maze.bfs_path();
     cout << "Путь при поиске в ширину: \n";
     maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
-    cout << endl << maze_path << endl << endl;
+    cout << endl;
 
     maze_path = maze.dfs_path();
     cout << "Путь при поиске в глубину: \n";
     maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
-    cout << endl << maze_path << endl << endl;
+    cout << endl;
 
     maze_path = maze.bi_bfs_path();
     cout << "Путь при поиске в ширину с двух сторон: \n";
     maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
-    cout << endl << maze_path << endl << endl;
+    cout << endl;
 
     return 0;
 }
