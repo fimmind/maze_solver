@@ -1,5 +1,6 @@
 // Prelude {{{1
 #include <algorithm>
+#include <chrono>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -9,7 +10,9 @@
 #include <stack>
 #include <string>
 #include <vector>
+
 using namespace std;
+using namespace std::chrono;
 
 // Supplementary function  {{{1
 template <class T>
@@ -51,12 +54,12 @@ class Maze {
 
     // Один шаг поиска в ширину
     void bfs_step(set<cell_t>* visited_forward,
-                  const set<cell_t> visited_backward,
+                  const set<cell_t>* visited_backward,
                   queue<cell_t>* search_queue, map<cell_t, cell_t>* parents,
                   bool* is_done, cell_t* intersection) {
         if (search_queue->empty() || *is_done) return;
         cell_t next = search_queue->front();
-        if (visited_backward.contains(next)) {
+        if (visited_backward->contains(next)) {
             *is_done = true;
             if (intersection) *intersection = next;
             return;
@@ -182,9 +185,11 @@ class Maze {
         map<cell_t, cell_t> parents;
         bool is_done = false;
 
+        const set<cell_t> destination_set({_dest_pos});
+
         while (!search_queue.empty()) {
-            bfs_step(&visited, {_dest_pos}, &search_queue, &parents, &is_done,
-                     nullptr);
+            bfs_step(&visited, &destination_set, &search_queue, &parents,
+                     &is_done, nullptr);
             if (is_done) {
                 return build_path(parents, _start_pos, _dest_pos);
             }
@@ -194,21 +199,22 @@ class Maze {
 
     // Двусторонний поиск в ширину
     vector<cell_t> bi_bfs_path() {
-        auto visited_forward = set<cell_t>({_start_pos});
-        auto visited_backward = set<cell_t>({_dest_pos});
-        auto forward_search_queue = queue<cell_t>({_start_pos});
-        auto backward_search_queue = queue<cell_t>({_dest_pos});
+        set<cell_t> visited_forward({_start_pos});
+        set<cell_t> visited_backward({_dest_pos});
+        queue<cell_t> forward_search_queue({_start_pos});
+        queue<cell_t> backward_search_queue({_dest_pos});
         map<cell_t, cell_t> parents;
         map<cell_t, cell_t> children;
         bool is_done = false;
         cell_t intersection;
 
-        while (!forward_search_queue.empty() ||
+        while (!forward_search_queue.empty() &&
                !backward_search_queue.empty()) {
-            bfs_step(&visited_forward, visited_backward, &forward_search_queue,
+            bfs_step(&visited_forward, &visited_backward, &forward_search_queue,
                      &parents, &is_done, &intersection);
-            bfs_step(&visited_backward, visited_forward, &backward_search_queue,
-                     &children, &is_done, &intersection);
+            bfs_step(&visited_backward, &visited_forward,
+                     &backward_search_queue, &children, &is_done,
+                     &intersection);
             if (is_done) {
                 vector<cell_t> res_path =
                     build_path(parents, _start_pos, intersection);
@@ -302,6 +308,16 @@ ostream& operator<<(ostream& os, set<T> s) {
     return os;
 }
 
+// Timing {{{1
+#define timed(expr)                                                \
+    {                                                              \
+        auto start = high_resolution_clock::now();                 \
+        expr;                                                      \
+        auto stop = high_resolution_clock::now();                  \
+        auto duration = duration_cast<microseconds>(stop - start); \
+        cout << "Время выполнения: " << duration.count() << endl;  \
+    }
+
 // main {{{1
 int main() {
     const size_t height = 20;
@@ -313,18 +329,19 @@ int main() {
     maze.print();
     cout << endl << endl;
 
-    auto maze_path = maze.bfs_path();
-    cout << "Путь при поиске в ширину: \n";
+    vector<cell_t> maze_path;
+    cout << "Путь при поиске в ширину:" << endl;
+    timed(maze_path = maze.bfs_path());
     maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
     cout << endl;
 
-    maze_path = maze.dfs_path();
-    cout << "Путь при поиске в глубину: \n";
+    cout << "Путь при поиске в глубину:" << endl;
+    timed(maze_path = maze.dfs_path());
     maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
     cout << endl;
 
-    maze_path = maze.bi_bfs_path();
-    cout << "Путь при поиске в ширину с двух сторон: \n";
+    cout << "Путь при поиске в ширину с двух сторон:" << endl;
+    timed(maze_path = maze.bi_bfs_path());
     maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
     cout << endl;
 
