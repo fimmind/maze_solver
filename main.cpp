@@ -146,8 +146,14 @@ class Maze {
             }
         }
 
-        _start_pos = {0, 0};
-        _dest_pos = {H - 1, W - 1};
+        uniform_int_distribution<size_t> height_distribution(0, H);
+        uniform_int_distribution<size_t> width_distribution(0, W);
+        auto random_position = [&]() -> cell_t {
+            return { height_distribution(generator), width_distribution(generator) };
+        };
+
+        _start_pos = random_position();
+        _dest_pos = random_position();
         _field[_start_pos.first][_start_pos.second] = 0;
         _field[_dest_pos.first][_dest_pos.second] = 0;
     }
@@ -320,8 +326,8 @@ ostream& operator<<(ostream& os, set<T> s) {
 
 // main {{{1
 int main() {
-    const size_t height = 20;
-    const size_t width = 40;
+    const size_t height = 60;
+    const size_t width = 120;
 
     typedef Maze<height, width>::cell_t cell_t;
     Maze<height, width> maze;
