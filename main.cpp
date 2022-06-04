@@ -144,8 +144,6 @@ class Maze {
 
     Maze() { generate_random(); }
 
-    ~Maze() {}
-
     void generate_random() {
         random_device r;
         default_random_engine generator(r());
