@@ -4,6 +4,7 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <numeric>
 #include <queue>
 #include <random>
 #include <set>
@@ -20,6 +21,11 @@ vector<T>& operator+=(vector<T>& v1, const vector<T>& v2) {
     v1.reserve(v1.size() + v2.size());
     v1.insert(v1.end(), v2.begin(), v2.end());
     return v1;
+}
+
+template <class T>
+T average(vector<T>& v) {
+    return reduce(v.begin(), v.end()) / v.size();
 }
 
 // Maze class {{{1
@@ -136,7 +142,11 @@ class Maze {
         _dest_pos = dest_pos;
     }
 
-    Maze() {
+    Maze() { generate_random(); }
+
+    ~Maze() {}
+
+    void generate_random() {
         random_device r;
         default_random_engine generator(r());
         uniform_int_distribution<unsigned int> bool_distribution(0, 3);
@@ -146,10 +156,11 @@ class Maze {
             }
         }
 
-        uniform_int_distribution<size_t> height_distribution(0, H);
-        uniform_int_distribution<size_t> width_distribution(0, W);
+        uniform_int_distribution<size_t> height_distribution(0, H - 1);
+        uniform_int_distribution<size_t> width_distribution(0, W - 1);
         auto random_position = [&]() -> cell_t {
-            return { height_distribution(generator), width_distribution(generator) };
+            return {height_distribution(generator),
+                    width_distribution(generator)};
         };
 
         _start_pos = random_position();
@@ -157,8 +168,6 @@ class Maze {
         _field[_start_pos.first][_start_pos.second] = 0;
         _field[_dest_pos.first][_dest_pos.second] = 0;
     }
-
-    ~Maze() {}
 
     inline size_t width() const { return W; }
     inline size_t height() const { return H; }
@@ -315,41 +324,38 @@ ostream& operator<<(ostream& os, set<T> s) {
 }
 
 // Timing {{{1
-#define timed(expr)                                                \
-    {                                                              \
-        auto start = high_resolution_clock::now();                 \
-        expr;                                                      \
-        auto stop = high_resolution_clock::now();                  \
-        auto duration = duration_cast<microseconds>(stop - start); \
-        cout << "Время выполнения: " << duration.count() << endl;  \
-    }
+template <class F>
+microseconds timed(F f) {
+    auto start = high_resolution_clock::now();
+    f();
+    auto stop = high_resolution_clock::now();
+    return duration_cast<microseconds>(stop - start);
+}
 
 // main {{{1
 int main() {
     const size_t height = 60;
     const size_t width = 120;
+    const size_t runs = 10000;
 
-    typedef Maze<height, width>::cell_t cell_t;
+    cout << "Running a " << runs << " runs test for a " << height << "x"
+         << width << " map...\n";
+
+    vector<microseconds> bfs_times = {};
+    vector<microseconds> dfs_times = {};
+    vector<microseconds> bi_bfs_times = {};
+
     Maze<height, width> maze;
-    cout << "Поле: \n";
-    maze.print();
-    cout << endl << endl;
+    for (auto i = 0; i < runs; ++i) {
+        maze.generate_random();
+        bfs_times.push_back(timed([&]() { maze.bfs_path(); }));
+        dfs_times.push_back(timed([&]() { maze.dfs_path(); }));
+        bi_bfs_times.push_back(timed([&]() { maze.bi_bfs_path(); }));
+    }
 
-    vector<cell_t> maze_path;
-    cout << "Путь при поиске в ширину:" << endl;
-    timed(maze_path = maze.bfs_path());
-    maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
-    cout << endl;
-
-    cout << "Путь при поиске в глубину:" << endl;
-    timed(maze_path = maze.dfs_path());
-    maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
-    cout << endl;
-
-    cout << "Путь при поиске в ширину с двух сторон:" << endl;
-    timed(maze_path = maze.bi_bfs_path());
-    maze.print_with_path(set<cell_t>(maze_path.begin(), maze_path.end()));
-    cout << endl;
+    cout << "Averate time:\n BFS  : " << average(bfs_times)
+         << "\n DFS  : " << average(dfs_times)
+         << "\nbiBFS : " << average(bi_bfs_times) << "\n";
 
     return 0;
 }
