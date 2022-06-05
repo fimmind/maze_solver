@@ -351,9 +351,9 @@ int main() {
         bi_bfs_times.push_back(timed([&]() { maze.bi_bfs_path(); }));
     }
 
-    cout << "Averate time:\n   BFS  : " << average(bfs_times).count()
-         << "\n   DFS  : " << average(dfs_times).count()
-         << "\n  biBFS : " << average(bi_bfs_times).count() << "\n";
+    cout << "Averate time:\n   BFS  : " << average(bfs_times)
+         << "\n   DFS  : " << average(dfs_times)
+         << "\n  biBFS : " << average(bi_bfs_times) << "\n";
 
     return 0;
 }
